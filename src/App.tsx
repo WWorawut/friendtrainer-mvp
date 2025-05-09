@@ -1,147 +1,161 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { LoginScreen } from '@/components/login-screen';
-import { supabase } from '@/lib/supabase';
-import { Session } from '@supabase/supabase-js'; // Import Session type
+    import { useEffect, useState } from 'react';
+    import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+    import { LoginScreen } from '@/components/login-screen';
+    import { supabase } from '@/lib/supabase';
+    import { Session } from '@supabase/supabase-js'; // Import Session type
 
-// Import Onboarding Step components
-import { Step1 } from '@/components/onboarding/step1'; 
-import { Step2 } from '@/components/onboarding/step2'; // <--- Import Component ใหม่
+    // Import Onboarding Step components
+    import { Step1 } from '@/components/onboarding/step1';
+    import { Step2 } from '@/components/onboarding/step2';
+    import { Step3 } from '@/components/onboarding/step3'; // Corrected Import for Step 3
 
-// Placeholder components for other screens
-const ChatScreen = () => <div className="p-8 font-heading">Chat Screen (Placeholder)</div>;
+    // Placeholder components for other screens
+    const ChatScreen = () => {
+      console.log('Rendering ChatScreen Placeholder'); // Log when ChatScreen is rendered
+      return <div className="p-8 font-heading">Chat Screen (Placeholder)</div>;
+    };
 
-// Component that checks auth and profile status and navigates
-const AuthNavigator = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true); // State to track if initial auth/profile check is loading
-  const [session, setSession] = useState<Session | null>(null); // State to hold the user session
-  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null); // State to track onboarding status
+    // Component that checks auth and profile status and navigates
+    const AuthNavigator = () => {
+      console.log('AuthNavigator component starts rendering'); // Log when AuthNavigator renders
+      const navigate = useNavigate();
+      const [loading, setLoading] = useState(true);
+      const [session, setSession] = useState<Session | null>(null);
+      const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    // --- Development Bypass Logic ---
-    // Check if the application is running in development mode
-    if (import.meta.env.DEV) {
-      console.log('Running in Development mode. Bypassing real auth check for testing Onboarding.');
-      // Simulate a logged-in state for a new user (not onboarded)
-      setSession({} as Session); // Simulate a non-null session object
-      setIsOnboarded(false); // Simulate user is NOT onboarded
-      setLoading(false); // Loading is complete
-      return; // Exit this effect early in development
-    }
-    // --- End Development Bypass Logic ---
+      useEffect(() => {
+        console.log('AuthNavigator useEffect (listener setup) runs'); // Log when the first useEffect runs
 
+        // --- Development Bypass Logic ---
+        if (import.meta.env.DEV) {
+          console.log('Running in Development mode. Bypassing real auth check for testing Onboarding.');
+          setSession({} as Session);
+          setIsOnboarded(false);
+          setLoading(false);
+          console.log('AuthNavigator Dev Bypass finished. State: session=', !!session, ' isOnboarded=', isOnboarded, ' loading=', false); // Log final state in bypass
+          return;
+        }
+        // --- End Development Bypass Logic ---
 
-    // --- Production Auth Logic (This runs ONLY in Production or when bypass is off) ---
-    console.log('Running in Production mode or bypass is off. Using real auth check.');
-    // This effect runs once on mount to set up the real auth state change listener
+        // --- Production Auth Logic ---
+        console.log('Running in Production mode or bypass is off. Using real auth check.');
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (_event, currentSession) => {
+            console.log('AuthNavigator onAuthStateChange triggered. Event:', _event, ' Session:', !!currentSession); // Log when auth state changes
+            setSession(currentSession);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, currentSession) => {
-        setSession(currentSession); // Always update the session state
+            if (currentSession) {
+              console.log('AuthNavigator: User is authenticated. Checking profile...'); // Log if authenticated
+              try {
+                const { data: profile, error } = await supabase
+                  .from('profiles')
+                  .select('is_onboarded')
+                  .eq('id', currentSession.user.id)
+                  .single();
 
-        if (currentSession) {
-          // User is authenticated, now check onboarding status
-          try {
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('is_onboarded')
-              .eq('id', currentSession.user.id)
-              .single();
-
-            if (error && error.code !== 'PGRST116') {
-                 console.error('Error fetching profile:', error);
-                 setIsOnboarded(false); // Assume user needs onboarding on error
-             } else if (!profile) {
-                 setIsOnboarded(false); // Assume user needs onboarding
-             }
-            else {
-              setIsOnboarded(profile.is_onboarded); // Set onboarding status from profile data
+                if (error && error.code !== 'PGRST116') {
+                     console.error('AuthNavigator: Error fetching profile:', error);
+                     setIsOnboarded(false);
+                 } else if (!profile) {
+                     console.log('AuthNavigator: No profile found.');
+                     setIsOnboarded(false);
+                 }
+                else {
+                  console.log('AuthNavigator: Profile found. is_onboarded=', profile.is_onboarded);
+                  setIsOnboarded(profile.is_onboarded);
+                }
+              } catch (error) {
+                console.error('AuthNavigator: Unexpected error checking user profile:', error);
+                setIsOnboarded(false);
+              } finally {
+                 setLoading(false);
+                 console.log('AuthNavigator: Profile check finished. State: session=', !!currentSession, ' isOnboarded=', isOnboarded, ' loading=', false); // Log final state after profile check
+              }
+            } else {
+              console.log('AuthNavigator: User is NOT authenticated.'); // Log if not authenticated
+              setIsOnboarded(null);
+              setLoading(false);
+              console.log('AuthNavigator: Auth check finished. State: session=', false, ' isOnboarded=', null, ' loading=', false); // Log final state after auth check
             }
-          } catch (error) {
-            console.error('Unexpected error checking user profile:', error);
-            setIsOnboarded(false); // Assume user needs onboarding on error
-          } finally {
-             setLoading(false);
+          }
+        );
+
+        return () => {
+          console.log('AuthNavigator useEffect (listener cleanup) runs'); // Log when cleanup runs
+          subscription.unsubscribe();
+        };
+      }, []);
+
+      useEffect(() => {
+        console.log('AuthNavigator useEffect (navigation) runs. State: loading=', loading, ' session=', !!session, ' isOnboarded=', isOnboarded); // Log when the second useEffect runs
+
+        if (!loading) {
+          console.log('AuthNavigator: Loading finished. Deciding navigation...'); // Log if loading finished
+          if (session) {
+            console.log('AuthNavigator: Session exists. Checking onboarding status...'); // Log if session exists
+            if (isOnboarded === false) {
+              console.log('AuthNavigator: User not onboarded. Navigating to /onboarding/step1'); // Log before navigating
+              // Check current path to avoid unnecessary navigation if already on an onboarding step
+              if (!window.location.pathname.startsWith('/onboarding/')) { // Simplified check for any onboarding path
+                 navigate('/onboarding/step1');
+              } else {
+                 console.log('AuthNavigator: Already on an onboarding path, not navigating.'); // Log if already on onboarding path
+              }
+            } else if (isOnboarded === true) {
+              console.log('AuthNavigator: User onboarded. Navigating to /chat'); // Log before navigating
+              navigate('/chat');
+            } else {
+              console.log('AuthNavigator: Session exists, but onboarding status is null/undefined. Waiting or error?'); // Log if onboarding status is unexpected
+            }
+          } else {
+            console.log('AuthNavigator: No session. Navigating to /login'); // Log before navigating
+            navigate('/login');
           }
         } else {
-          // No session, user is logged out
-          setIsOnboarded(null); // Reset onboarding status if logged out
-          setLoading(false); // Authentication check is complete
+           console.log('AuthNavigator: Still loading...'); // Log if still loading
         }
-      }
-    );
+      }, [loading, session, isOnboarded, navigate]);
 
-    // Cleanup subscription when the component unmounts
-    return () => {
-      subscription.unsubscribe();
+      console.log('AuthNavigator component finishes rendering. Loading state:', loading); // Log when AuthNavigator finishes rendering
+
+      if (loading) {
+        console.log('AuthNavigator: Rendering Loading indicator.'); // Log if rendering loading
+        return <div className="p-8 font-heading">Loading application...</div>;
+      }
+
+      console.log('AuthNavigator: Rendering null (Router takes over).'); // Log if rendering null
+      return null;
     };
-    // --- End Production Auth Logic ---
 
-  }, []); // Empty dependency array ensures this effect runs only once on component mount
 
-  // This effect handles the actual navigation based on the state changes (session, isOnboarded, loading)
-  useEffect(() => {
-    // Only attempt to navigate after the initial loading check is complete
-    if (!loading) {
-      if (session) {
-        // User is authenticated (either real session or simulated in dev)
-        // Navigate based on onboarding status once it's determined
-        if (isOnboarded === false) {
-          // User is authenticated but not onboarded (real or simulated)
-          // Check current path to avoid unnecessary navigation if already on an onboarding step
-          if (!window.location.pathname.startsWith('/onboarding/')) {
-             navigate('/onboarding/step1'); // Navigate to the first onboarding step
-          }
-        } else if (isOnboarded === true) {
-          // User is authenticated and onboarded (real)
-          navigate('/chat');
-        }
-      } else {
-        // User is not authenticated (real)
-        navigate('/login');
-      }
+    function App() {
+      console.log('App component starts rendering'); // Log when App renders
+      return (
+        <BrowserRouter>
+          {console.log('App: Inside BrowserRouter')} {/* Log inside BrowserRouter */}
+          <AuthNavigator />
+
+          <Routes>
+            {console.log('App: Inside Routes')} {/* Log inside Routes */}
+            {/* Public route for login */}
+            <Route path="/login" element={<LoginScreen />} />
+
+            {/* Onboarding Step Routes */}
+            <Route path="/onboarding/step1" element={<Step1 />} />
+            <Route path="/onboarding/step2" element={<Step2 />} />
+            <Route path="/onboarding/step3" element={<Step3 />} />
+
+            {/* Protected route for Chat */}
+            <Route path="/chat" element={<ChatScreen />} />
+
+            {/* Optional: Redirect any unknown paths to login or handle 404 */}
+             <Route path="*" element={<Navigate to="/login" replace />} />
+
+          </Routes>
+          {console.log('App: After Routes')} {/* Log after Routes */}
+        </BrowserRouter>
+      );
     }
-  }, [loading, session, isOnboarded, navigate]); // Dependencies ensure this effect reacts to changes in these states
 
-  // Optionally, render a loading indicator while determining the initial route
-  if (loading) {
-    return <div className="p-8 font-heading">Loading application...</div>;
-  }
-
-  // This component primarily manages state and navigation.
-  // It doesn't render the main UI content itself, that's done by <Routes>.
-  return null;
-};
-
-
-function App() {
-  // App component sets up the BrowserRouter and Routes
-  return (
-    <BrowserRouter>
-      {/* Render AuthNavigator inside BrowserRouter so it can use useNavigate */}
-      {/* AuthNavigator will handle the initial redirection based on auth state and onboarding */}
-      <AuthNavigator />
-
-      <Routes>
-        {/* Public route for login */}
-        <Route path="/login" element={<LoginScreen />} />
-
-        {/* Onboarding Step Routes */}
-        <Route path="/onboarding/step1" element={<Step1 />} /> {/* Assuming NameScreen is step 1 */}
-        <Route path="/onboarding/step-2" element={<Step2 />} /> {/* <--- เพิ่ม Route ใหม่ */}
-        {/* Add more onboarding steps here */}
-
-
-        {/* Protected route for Chat */}
-        <Route path="/chat" element={<ChatScreen />} />
-
-        {/* Optional: Redirect any unknown paths to login or handle 404 */}
-         <Route path="*" element={<Navigate to="/login" replace />} />
-
-      </Routes>
-    </BrowserRouter>
-  );
-}
-
-export default App;
+    export default App;
+    

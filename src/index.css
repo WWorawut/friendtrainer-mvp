@@ -1,85 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
-/* Add custom font-heading class definition */
-@layer components {
-  .font-heading {
-    /* Apply IBM Plex Sans font family */
-    /* You might need to configure 'font-heading' in tailwind.config.js first */
-    /* Or directly use a font utility if configured */
-    /* Example using a direct font family utility if configured in tailwind.config.js */
-    /* @apply font-['IBM Plex Sans Thai'] font-semibold; */
-
-    /* A more general way if font-heading is defined in tailwind.config.js */
-    /* Check your tailwind.config.js for how 'font-heading' is defined */
-    /* If 'font-heading' is a custom font family name in tailwind.config.js, use it like this: */
-     font-family: theme('font.heading'); /* Assuming 'heading' is the key for IBM Plex Sans in tailwind.config.js */
-     /* Or if you defined a custom utility in tailwind.config.js */
-     /* @apply custom-heading-styles; */
-
-     /* --- Let's try a common approach based on your prompt --- */
-     /* Apply IBM Plex Sans Thai and a fallback system font */
-     font-family: "IBM Plex Sans Thai", "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-     /* Apply a default font weight, e.g., semi-bold (600) */
-     font-weight: 600;
-     /* You can add other styles like line-height if needed */
-     /* line-height: 1.2; */
-  }
-}
-
-/* You might also need to define the system font stack as default body font */
-body {
-   font-family: ui-sans-serif, system-ui, sans-serif;
-   /* You can also set a default font weight for body */
-   /* font-weight: 400; */
-}
 @layer base {
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-heading font-medium;
-  }
-
-  h1 {
-    @apply text-4xl leading-tight;
-  }
-
-  h2 {
-    @apply text-3xl leading-tight;
-  }
-
-  h3 {
-    @apply text-2xl leading-tight;
-  }
-
-  h4 {
-    @apply text-xl leading-tight;
-  }
-
-  h5 {
-    @apply text-lg leading-tight;
-  }
-
-  h6 {
-    @apply text-base leading-tight font-semibold;
-  }
-
-  p, span, div, li, input, textarea {
-    @apply font-sans leading-relaxed;
-  }
-
-  /* Animation utilities */
-  .animate-fade-in {
-    @apply transition-opacity duration-300 ease-in-out;
-  }
-
-  .animate-scale {
-    @apply transition-transform duration-200 ease-in-out;
-  }
-
-  .animate-slide-up {
-    @apply transition-all duration-300 ease-out;
+  html {
+    font-family: "IBM Plex Sans Thai", system-ui, sans-serif;
   }
 }
+
+/* Remove the custom font-heading class since we're using IBM Plex Sans Thai as the default font */
