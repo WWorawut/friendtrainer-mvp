@@ -1,7 +1,8 @@
-import { useState } from 'react'; // Import useState for managing input state
+import { useState } from 'react'; 
 import { useNavigate } from 'react-router-dom';
-// Assuming Button component is available at this path from Radix/Tailwind setup
+
 import { Button } from '@/components/ui/button';
+import { PrimaryButton } from '@/components/reuseable/Button/Primary';
 
 export const Step2 = () => {
   const navigate = useNavigate();
@@ -59,18 +60,12 @@ export const Step2 = () => {
               />
 
               {/* "Next" button */}
-              <Button
-                onClick={handleNext} // Button still calls handleNext
-                // You might want to remove the disabled prop if navigation should always happen
-                // Or keep it if the button should only be clickable when input is not empty
-                // If you remove disabled, the button is always clickable.
-                // If you keep disabled, the button is only clickable when input has text.
-                // Based on your report, you want navigation to happen, so let's remove disabled for now.
-                // disabled={!coachName.trim()} // <--- พิจารณาว่าจะลบออกหรือไม่
-                className="w-full h-12 bg-primary-600 text-white hover:bg-primary-700 rounded-full"
-              >
-                ถัดไป
-              </Button>
+             <PrimaryButton
+            onClick={handleNext}
+            size="large"
+          >
+            เรียกชื่อนี้เลย
+          </PrimaryButton>
 
               {/* Optional "Back" button */}
               {/*
